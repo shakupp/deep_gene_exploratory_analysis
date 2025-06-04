@@ -141,8 +141,8 @@ my_theme = create_theme(adminlte_color(light_blue = "#D8BFD8", purple = "#D8BFD8
         ),
         
         div(
-          style = "position: absolute; top: 58%; left: 50%; transform: translate(-50%, -50%); width: 100%;",
-          actionButton("toggle_sidebar", "Ask an Agent!", class = "sidebar-toggle")
+          style = "position: absolute; top: 65%; left: 50%; transform: translate(-50%, -50%); width: 100%;",
+          actionButton("toggle_sidebar", "Click here!", class = "sidebar-toggle")
         )
       )
     ),
