@@ -8,7 +8,9 @@ library(shinydashboard)
 library(DT)
 library(fresh)
 library(plotly)
-source('figures.R')
+source('R/figures.R')
+source('R/pathway_module.R')
+
 
 #--------------------------------------------------------------------------
 # Author : Hadrien Sofr
@@ -119,12 +121,6 @@ my_theme = create_theme(adminlte_color(light_blue = "#D8BFD8", purple = "#D8BFD8
         ),
         
         menuItem(
-          "Protein domain enrichement",
-          icon = icon("glyphicon glyphicon-barcode", lib = 'glyphicon'),
-          tabName = "protein_enrichment"
-        ),
-        
-        menuItem(
           "Data Base",
           icon = icon("gg"),
           menuSubItem("KEGG", tabName = "kegg"),
@@ -156,7 +152,7 @@ my_theme = create_theme(adminlte_color(light_blue = "#D8BFD8", purple = "#D8BFD8
   
   dashboardBody(
     use_theme(my_theme),
-    includeCSS("styles.css"),
+    includeCSS("www/styles.css"),
     
     #===============================
     # Define Tab Items for each page
@@ -189,6 +185,7 @@ my_theme = create_theme(adminlte_color(light_blue = "#D8BFD8", purple = "#D8BFD8
               p("A button allows you to select only the differentially expressed genes for your table."),
               p("Finally, switching from the Volcano plot to the MA plot will not erase your work! ;)") 
       ),
+      
       #############
       # Fin Home
       #############
@@ -383,31 +380,23 @@ my_theme = create_theme(adminlte_color(light_blue = "#D8BFD8", purple = "#D8BFD8
       tabItem(
         tabName = "pathway_enrichment",
         h2("Pathway Enrichment Analysis"),
-        p("This is the content for Pathway enrichment.")
-      ),
-      
-      tabItem(
-        tabName = "protein_enrichment",
-        h2("Protein Domain Enrichment Analysis"),
-        p("This is the content for Protein domain enrichment.")
-      ),
-      
-      tabItem(
-        tabName = "ORA",
-        h2("Overrepresentation Analysis (ORA)"),
-        p("Content for ORA.")
-      ),
-      
-      tabItem(
-        tabName = "GSEA",
-        h2("Gene Set Enrichment Analysis (GSEA)"),
-        p("Content for GSEA.")
-      ),
-      
-      tabItem(
-        tabName = "graph",
-        h2("Other Graph Analysis"),
-        p("Content for other graph analysis.")
+        
+        fluidRow(
+          box(
+            title = "Pathway Settings",
+            width = 12,
+            status = "primary",
+            solidHeader = TRUE,
+            
+            selectInput("pathway_analysis_method", "Analysis Method", choices = c("ORA", "GSEA")),
+            selectInput("deg_direction", "Gene Regulation", choices = c("Over", "Under", "Both")),
+            selectInput("pathway_analysis_database", "Database", choices = c("KEGG", "Reactome")),
+            numericInput("slider_pval_pathway_analysis", "p.adjust Threshold", value = 0.05, min = 0, max = 1, step = 0.01),
+            actionButton("run_pathway_analysis", "Run Analysis")
+          )
+        ),
+        
+        pathwayUI("pathway")
       ),
       
       tabItem(tabName = "kegg", h2("KEGG Database"), p("Content for KEGG.")),

@@ -39,7 +39,7 @@ formating_padj = function(column_) {
 
 
 # Function that determines the status of the results table based on the sliders for logFC and padj.
-set_differential_expression = function(data_,
+set_differential_expression <- function(data_,
                                        log2FC_,
                                        padj_) {
   data_$expressionStatus = "NO"
@@ -47,5 +47,5 @@ set_differential_expression = function(data_,
                            data_$padj < padj_] = "UP"
   data_$expressionStatus[data_$log2FC < -log2FC_ &
                            data_$padj < padj_] = "DOWN"
-  return(data = data_)
+  return(data_)
 }

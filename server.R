@@ -4,12 +4,23 @@ library(DT)
 library(httr)
 library(jsonlite)
 library(plotly)
-source('figures.R')
-source('verification.R')
-source('formate.R')
+library(clusterProfiler)
+library(org.Mm.eg.db)  # pour souris — a adapte
+library(enrichplot)
+library(pathview)
+library(ReactomePA)
+source('R/figures.R')
+source('R/verification.R')
+source('R/formate.R')
+source("R/pathway.R")
+source("R/pathway_plot.R")
+source("R/pathway_module.R")
 
 # Define server
 server <- function(input, output) {
+  if (dir.exists("www/tmp")) {
+    unlink("www/tmp/*", recursive = TRUE)
+  }
   # download and verification
   data_table <- reactive({
     req(input$file)
@@ -20,21 +31,18 @@ server <- function(input, output) {
       return(NULL)
     }
     
-    # If fill have the correct format, read it
-    df = read.csv(input$file$datapath, header = TRUE)
-    
-    # Verify column names
-    if (!is_colnames_true(colnames(df))) {
-      return(NULL)  # Exit early if columns are incorrect
+    # If fill have the correct format, read it (to read csv files with sep = "," or ";")
+    df_try1 <- try(read.csv(input$file$datapath, header = TRUE), silent = TRUE)
+    if (inherits(df_try1, "try-error") || !is_colnames_true(colnames(df_try1))) {
+      df_try2 <- try(read.csv(input$file$datapath, header = TRUE, sep = ";"), silent = TRUE)
+      if (!inherits(df_try2, "try-error") && is_colnames_true(colnames(df_try2))) {
+        df <- df_try2
+      } else {
+        return(NULL)
+      }
+    } else {
+      df <- df_try1
     }
-    
-    # Verify if there are NA
-    if (!is_NA(df)) {
-      return(NULL)  # Exit early if there are NAs
-    }
-    
-    # Here, add colnames format and value format to be sure value and colnames feet with other part of the script
-    df = formating_dataframe(df)
     
     return(df)
   })
@@ -265,7 +273,7 @@ server <- function(input, output) {
       )
     }
   )
-  
+
   # Download data
   output$download_data_MA_plot <- downloadHandler(
     filename = function() {
@@ -291,10 +299,23 @@ server <- function(input, output) {
       write.csv(filtered_data_MA(), file, row.names = FALSE)
     }
   )
+  ### chargement of the species csv to fin correspondance with  ###
+  #species_reference <- read.csv("species_reference.csv", sep = ";",header = TRUE)
+  # function to get the appropriate species ID based on the user input
+  #get_species_id <- function(species_name, database) {}
   
-  #######################
-  # Gene Research Button
-  #######################
-  
+  ####################
+  # Pathway analysis #
+  ####################
+    mod_pathway <- pathwayServer(
+  id = "pathway",
+  input_data = data_table,
+  method = reactive(input$pathway_analysis_method),
+  direction = reactive(input$deg_direction),
+  database = reactive(input$pathway_analysis_database),
+  pval_thresh = reactive(input$slider_pval_pathway_analysis),
+  run_trigger = reactive(input$run_pathway_analysis)
+)
 }
+  
 
