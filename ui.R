@@ -7,8 +7,11 @@ library(shinydisconnect)
 library(shinydashboard)
 library(DT)
 library(fresh)
+library(shinyBS)
 library(plotly)
-source('figures.R')
+source('R/figures.R')
+source('R/pathway_module.R')
+
 
 #--------------------------------------------------------------------------
 # Author : Hadrien Sofr
@@ -22,7 +25,7 @@ source('figures.R')
 #--------------------------------------------------------------------------
 
 
-my_theme = create_theme(adminlte_color(light_blue = "#D8BFD8", purple = "#D8BFD8"))
+my_theme = create_theme(adminlte_color(light_blue = "#ccc5ed", purple = "#301934")) #301934 #702670
 
   dashboardPage(
     skin = 'purple',
@@ -34,28 +37,7 @@ my_theme = create_theme(adminlte_color(light_blue = "#D8BFD8", purple = "#D8BFD8
       title = "PEARL",
       tags$li(
         class = "dropdown",
-        style = "display: flex; align-items: center; height: 100%;",
-        actionButton(
-          inputId = "help",
-          label = "Help",
-          icon = icon(name = "question", lib = "font-awesome"),
-          style = "margin: 0 px;"
-        ),
-        
-        tags$div(
-          selectInput(
-            inputId = "language",
-            label = NULL,
-            choices = list(
-              "English" = "en",
-              "French" = "fr",
-              "Spanish" = "es"
-            ),
-            selected = "en",
-            width = "100px"
-          ),
-          style = "margin-left: 0px;margin-top: 15px" #regarder ici comment bien définir les onglets.
-        )
+        style = "display: flex; align-items: center; height: 100%;"
       )
     ),
     
@@ -79,13 +61,6 @@ my_theme = create_theme(adminlte_color(light_blue = "#D8BFD8", purple = "#D8BFD8
           "Home",
           tabName = "Home",
           icon = icon(name = "home", lib = "font-awesome")
-        ),
-        
-        sidebarSearchForm(
-          label = "Enter a gene",
-          textId = "searchGene",
-          buttonId = "searchButton",
-          icon = icon(name = 'dna', lib = 'font-awesome')
         ),
         
         menuItem(
@@ -119,12 +94,6 @@ my_theme = create_theme(adminlte_color(light_blue = "#D8BFD8", purple = "#D8BFD8
         ),
         
         menuItem(
-          "Protein domain enrichement",
-          icon = icon("glyphicon glyphicon-barcode", lib = 'glyphicon'),
-          tabName = "protein_enrichment"
-        ),
-        
-        menuItem(
           "Data Base",
           icon = icon("gg"),
           menuSubItem("KEGG", tabName = "kegg"),
@@ -137,11 +106,34 @@ my_theme = create_theme(adminlte_color(light_blue = "#D8BFD8", purple = "#D8BFD8
           placeholder = "No file selected",
           accept = c(".csv")
         ),
+
         
-        selectInput(
-          'organisme',
-          label = 'select organism name',
-          choices = list('homo sapiens', 'dog', 'cat', 'palkia')
+        div(
+      style = "padding: 10px;",
+      box(
+        title = "AI Agent",
+        status = "primary",
+        solidHeader = TRUE,
+        width = 12,
+        style = "width: 100%; max-height: 400px; overflow-y: auto; word-wrap: break-word; white-space: pre-wrap;",
+        textInput("user_question", "Ask a question:", placeholder = "Type your question here..."),
+        actionButton("ask_groq", "Ask AI"),
+        div(
+          style = "max-height: 300px; overflow-y: auto;",
+          tags$video(
+            src = "https://cdn.prod.website-files.com/65524b90a592a6c95fb2efbb/65cf3f7e48e49d354b5ba162_Right-handed%20DNA%20Helix-transcode.mp4",
+            type = "video/mp4",
+            height = "80",
+            autoplay = NA,
+            loop = NA,
+            muted = NA,
+            controls = NA
+          ),
+          uiOutput("groq_response")
+        )
+      )
+      
+      
         )
       )
     ),
@@ -156,8 +148,59 @@ my_theme = create_theme(adminlte_color(light_blue = "#D8BFD8", purple = "#D8BFD8
   
   dashboardBody(
     use_theme(my_theme),
-    includeCSS("styles.css"),
+    includeCSS("www/styles.css"),
+
     
+    tags$head(
+      tags$style(HTML("
+        .right-sidebar {
+          position: fixed;
+          right: 0;
+          top: 0;
+          width: 300px;
+          height: 100%;
+          background-color: #f8f9fa;
+          padding: 15px;
+          box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+          z-index: 1000;
+          overflow-y: auto;
+          transition: transform 0.3s ease;
+        }
+        .right-sidebar.collapsed {
+          transform: translateX(100%);
+        }
+        .sidebar-toggle {
+          position: fixed;
+          right: 10px;
+          top: 10px;
+          z-index: 1001;
+        }
+        
+        .ai-agent-box {
+          width: 100%;
+          max-height: 400px;
+          overflow-y: auto;
+          word-wrap: break-word;
+          padding: 10px;
+          margin-top: 10px;
+          border: 1px solid #ddd;
+          border-radius: 10px;
+          background-color: #f9f9f9;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .ai-response {
+          font-family: \"Segoe UI\", Roboto, sans-serif;
+          background: linear-gradient(to right, #f9f9f9, #ffffff);
+          padding: 10px;
+          border-radius: 10px;
+          margin-top: 10px;
+          color: #333;
+          font-size: 13px;
+          line-height: 1.6;
+          word-wrap: break-word;
+        }
+      "))
+    ),
     #===============================
     # Define Tab Items for each page
     #===============================
@@ -167,28 +210,97 @@ my_theme = create_theme(adminlte_color(light_blue = "#D8BFD8", purple = "#D8BFD8
       # Home
       #############
       # Specific home page for the final part.
+      
+      
       tabItem(tabName = "Home2",
+              
               h2("Welcome to PEARL"),
-              p("PEARL (Pathway Enrichment Analysis Reporting Launcher) is an interactive application designed to process and analyze RNA-Seq data. The application allows users to perform various analyses, visualize results, and explore gene expression data in a user-friendly interface."),
-              p("Plots and different analysis options can be selected via the menu bar on the left. Choose from a range of tools, including Volcano plots, MA plots, and Gene Ontology enrichment, to tailor your analysis based on your data needs."),
-              p("Navigate to 'Whole Genome Analyses' to select either a volcano plot or an MA plot."),
-              p("Upload a CSV file by selecting 'select a csv file', then go to 'whole data inspection', Volcano plot, or MA plot."),
-              p("You can then adjust the settings of your plot as desired. Once you're satisfied, you can download the plots via the 'Download ... Plot' button."),
-              p("You can also download the data associated with your plot. The table will take into account any zoom on the plot."),
-              p("A button allows you to select only the differentially expressed genes for your table."),
-              p("Finally, switching from the Volcano plot to the MA plot will not erase your work! ;)") 
+              h4("Pathway Enrichment Analysis Reporting Launcher"),
+              
+              ### Intro Panel
+              box(title = "What is PEARL?", 
+                  status = "primary", 
+                  solidHeader = TRUE, 
+                  width = 12,
+                  p("PEARL is an interactive application designed to process and analyze RNA-Seq data."),
+                  p("It integrates differential expression results with functional enrichment analysis, enabling intuitive exploration and publication-ready visualizations."),
+                  p("Navigate through the menu on the left to access the available analysis modules.")
+              ),
+              
+              ### Step-by-step workflow
+              h3("How to use PEARL"),
+              
+              fluidRow(
+                box(title = "Upload your data", 
+                    status = "primary", 
+                    solidHeader = TRUE, 
+                    width = 4,
+                    p("Upload a CSV file with your differential expression results."),
+                    tags$ul(
+                      tags$li("Go to: 'Whole Data Inspection'"),
+                      tags$li("Generate Volcano or MA plots")
+                    )
+                ),
+                
+                box(title = "Visualize & Explore", 
+                    status = "primary", 
+                    solidHeader = TRUE, 
+                    width = 4,
+                    p("Interact with Volcano and MA plots:"),
+                    tags$ul(
+                      tags$li("Adjust thresholds and visualization options"),
+                      tags$li("Zoom, filter and download plots and data")
+                    )
+                ),
+                
+                box(title = "Perform Enrichment Analysis", 
+                    status = "primary", 
+                    solidHeader = TRUE, 
+                    width = 4,
+                    p("Run enrichment analysis on your dataset:"),
+                    tags$ul(
+                      tags$li("Gene Ontology (GO)"),
+                      tags$li("Pathway analysis (KEGG, Reactome)"),
+                      tags$li("Compare ORA and GSEA methods")
+                    )
+                )
+              ),
+              
+              ### Additional Info
+              h3("Learn more about PEARL"),
+              
+              bsCollapse(id = "home_info_panel", open = NULL,
+                         
+                         bsCollapsePanel("How does PEARL work?", 
+                                         HTML("
+                    <p>PEARL integrates your differential expression data with functional enrichment analysis tools, including ORA and GSEA.</p>
+                    <p>Users can:</p>
+                    <ul>
+                      <li>Customize thresholds and parameters</li>
+                      <li>Choose between GO terms, pathways, and protein domain analyses</li>
+                      <li>Interactively explore results with detailed visualizations</li>
+                      <li>Export figures and tables for publications or reports</li>
+                    </ul>
+                    ")
+                         ),
+                         
+                         bsCollapsePanel("What's new in this version?", 
+                                         HTML("
+                    <ul>
+                      <li> Enhanced user interface with dynamic explanations</li>
+                      <li> Full integration of ORA and GSEA analysis pipelines</li>
+                      <li> Support for Gene Ontology, KEGG pathways, Reactome pathways, and protein domains</li>
+                      <li> Improved figure export options (high-res PNG, PDF)</li>
+                      <li> Better reproducibility of the entire analysis workflow</li>
+                    </ul>
+                    ")
+                         )
+              )
       ),
-      tabItem(tabName = "Home",
-              h2("Welcome to PEARL"),
-              p("PEARL (Pathway Enrichment Analysis Reporting Launcher) is an interactive application designed to process and analyze RNA-Seq data. The application allows users to perform various analyses, visualize results, and explore gene expression data in a user-friendly interface."),
-              p("Plots and different analysis options can be selected via the menu bar on the left. Choose from a range of tools, including Volcano plots, MA plots, and Gene Ontology enrichment, to tailor your analysis based on your data needs."),
-              p("Navigate to 'Whole Genome Analyses' to select either a volcano plot or an MA plot."),
-              p("Upload a CSV file by selecting 'select a csv file', then go to 'whole data inspection', Volcano plot, or MA plot."),
-              p("You can then adjust the settings of your plot as desired. Once you're satisfied, you can download the plots via the 'Download ... Plot' button."),
-              p("You can also download the data associated with your plot. The table will take into account any zoom on the plot."),
-              p("A button allows you to select only the differentially expressed genes for your table."),
-              p("Finally, switching from the Volcano plot to the MA plot will not erase your work! ;)") 
-      ),
+      
+      
+      
+      
       #############
       # Fin Home
       #############
@@ -377,46 +489,386 @@ my_theme = create_theme(adminlte_color(light_blue = "#D8BFD8", purple = "#D8BFD8
       tabItem(
         tabName = "gene_ontology",
         h2("Gene Ontology Enrichment Analysis"),
-        p("This is the content for Gene Ontology enrichment.")
+        tags$head(
+          tags$script(HTML("
+      Shiny.addCustomMessageHandler('triggerDownload', function(message) {
+        if (message === 'downloadAll') {
+          document.querySelector('#download_all_plots').click();
+        }
+      });
+    "))
+        ),
+        fluidRow(
+          box(
+            title = "Gene Ontology Settings",
+            width = 12,
+            status = "primary",
+            solidHeader = TRUE,
+            collapsible = TRUE,
+            background = "light-blue",  
+            
+            fluidRow(
+              column(
+                width = 4,
+                numericInput("pvalue_go", "P-value cutoff", value = 0.05),
+                selectInput(
+                  "Ontology",
+                  label = h4("Ontology:"),
+                  choices = c("BP", "CC", "MF", "All"),
+                  selected = "CC"
+                ),
+                sliderInput(
+                  inputId = "tresholdLog2FoldChange",
+                  label = "Log2FoldChange (log2FC) cutoff",
+                  min = 0,
+                  max = 5,
+                  step = 0.1,
+                  value = 0
+                ),
+                sliderInput("pmc_years", "PMC Plot Period:", min = 2002, max = 2025, value = c(2000, 2022), step = 1),
+              ),
+              column(
+                width = 4,
+                radioButtons(
+                  inputId = "method_go",
+                  label = "Analysis method",
+                  choices = list(
+                    "Overrepresentation analysis (ORA)" = 1,
+                    "Gene Set Enrichment Analysis (GSEA)" = 2
+                  ),
+                  selected = 1
+                ),
+                radioButtons(
+                  "type_go",
+                  label = h4("DEG type:"),
+                  choices = list(
+                    "Over expressed DEG only" = "over",
+                    "Under expressed DEG only" = "under",
+                    "Both" = "both"
+                  ),
+                  selected = "over"
+                ),
+                selectInput(
+                  "espece_id",
+                  label = h4("Organism:"),
+                  choices = list(
+                    "Human" = 1, "Mouse" = 2, "Rat" = 3, "Yeast" = 4, "Fly" = 5,
+                    "Arabidopsis" = 6
+                  ),
+                  selected = NULL
+                ),
+                conditionalPanel(
+                  condition = "input.method_go == 2",
+                  selectInput("showCategory_gseaplot", "Select Gene Set for GSEA Plot", choices = NULL)
+                ),
+              ),
+              column(
+                width = 4,
+                numericInput("showCategory_dotplot", "Dotplot categories", value = 10),
+              #  conditionalPanel(
+              #    condition = "input.method_go == 2", #GSEA
+              #  numericInput("showCategory_ridgeplot", "Ridgeplot categories", value = 10)
+              #  ),
+                #numericInput("showCategory_emapplot", "Emapplot categories", value = 30, min = 1),
+                numericInput("showCategory_netplot", "Netplot categories", value = 5, min = 1),
+                numericInput("showCategory_goNetplot", "GO Netplot categories", value = 10, min = 1),
+                #conditionalPanel(
+                #  condition = "input.method_go == 1", #ORA
+                #numericInput("showCategory_ridge_go", "Show top N GO terms:", value = 10, min = 2, max = 50)
+                #),
+                
+                numericInput("showCategory_barplot", label = "barplot categories", value = 10, min = 1, max = 50),
+                numericInput("showCategory_goplot", "goplot categories", value = 5)
+                
+              )
+            ),
+            
+            actionButton("Run_Annotation_go", "Run GO Enrichment", class = "btn-primary", style = "margin-top: 10px;"),
+            actionButton("triggerDownload", "Download All Plots", class = "btn-primary", style = "margin-top: 10px;"),
+            
+            conditionalPanel(
+              condition = "input.method_go == 2",
+              tabsetPanel(
+                tabPanel("GSEA Table", DTOutput("Table_go_GSEA")),
+                tabPanel("GSEA Dotplot",
+                         plotOutput("dotplot_gsea_go"),
+                         downloadButton("download_dotplot_gsea_go", "Download Dotplot"),
+                         
+                         actionButton("show_read_plot_dotplot_gsea_go", "How to read this plot?"),
+                         
+                         bsModal("modal_read_plot_dotplot_gsea_go", "How to read Dotplot", "show_read_plot_dotplot_gsea_go", size = "large",
+                                 htmlOutput("read_plot_text_dotplot_gsea_go")
+                         )
+                )
+                ,
+                tabPanel("GSEA Ridgeplot",
+                         plotOutput("ridgeplot_go"),
+                         downloadButton("download_ridgeplot_go", "Download Ridgeplot"),
+                         
+                         actionButton("show_read_plot_ridgeplot_go", "How to read this plot?"),
+                         
+                         bsModal("modal_read_plot_ridgeplot_go", "How to read Ridgeplot", "show_read_plot_ridgeplot_go", size = "large",
+                                 htmlOutput("read_plot_text_ridgeplot_go")
+                         )
+                ),
+                tabPanel("GSEA plot GO",
+                         plotOutput("gsea_plot_go"),
+                         downloadButton("download_gsea_plot_go", "Download GSEA Plot"),
+                         
+                         actionButton("show_read_plot_gsea_plot_go", "How to read this plot?"),
+                         
+                         bsModal("modal_read_plot_gsea_plot_go", "How to read GSEA Plot", "show_read_plot_gsea_plot_go", size = "large",
+                                 htmlOutput("read_plot_text_gsea_plot_go")
+                         )
+                )
+                ,
+                tabPanel("Emap plot",
+                         plotOutput("goEmapPlot"),
+                         downloadButton("download_goEmapPlot", "Download Emap Plot"),
+                         
+                         actionButton("show_read_plot_goEmapPlot", "How to read this plot?"),
+                         
+                         bsModal("modal_read_plot_goEmapPlot", "How to read Emap Plot", "show_read_plot_goEmapPlot", size = "large",
+                                 htmlOutput("read_plot_text_goEmapPlot")
+                         )
+                )
+                ,
+                tabPanel("GSEA Netplot",
+                         plotOutput("goGseaNetplot"),
+                         downloadButton("download_goGseaNetplot", "Download Netplot"),
+                         
+                         actionButton("show_read_plot_goGseaNetplot", "How to read this plot?"),
+                         
+                         bsModal("modal_read_plot_goGseaNetplot", "How to read Netplot", "show_read_plot_goGseaNetplot", size = "large",
+                                 htmlOutput("read_plot_text_goGseaNetplot")
+                         )
+                ),
+                tabPanel("PubTrend",
+                         plotOutput("pmcplot_go_gsea"),
+                         downloadButton("download_pmcplot_go_gsea", "Download PubTrend Plot"),
+                         
+                         actionButton("show_read_plot_pmcplot_go_gsea", "How to read this plot?"),
+                         
+                         bsModal("modal_read_plot_pmcplot_go_gsea", "How to read PubTrend Plot", "show_read_plot_pmcplot_go_gsea", size = "large",
+                                 htmlOutput("read_plot_text_pmcplot_go_gsea")
+                         )
+                )
+              )
+            ),
+            
+            conditionalPanel(
+              condition = "input.method_go == 1",
+              tabsetPanel(
+                tabPanel("ORA Table", DTOutput("Table_go_ORA")),
+                tabPanel("GO Up setplot",
+                         plotOutput("goUpsetplot"),
+                         downloadButton("download_goUpsetplot", "Download Upset Plot"),
+                         
+                         actionButton("show_read_plot_goUpsetplot", "How to read this plot?"),
+                         
+                         bsModal("modal_read_plot_goUpsetplot", "How to read UpSet Plot", "show_read_plot_goUpsetplot", size = "large",
+                                 htmlOutput("read_plot_text_goUpsetplot")
+                         )
+                ),
+                tabPanel("Barplot",
+                         plotOutput("barplot_ora_go"),
+                         downloadButton("download_barplot_ora_go", "Download Barplot"),
+                         
+                         actionButton("show_read_plot_barplot_ora_go", "How to read this plot?"),
+                         
+                         bsModal("modal_read_plot_barplot_ora_go", "How to read Barplot", "show_read_plot_barplot_ora_go", size = "large",
+                                 htmlOutput("read_plot_text_barplot_ora_go")
+                         )
+                ),
+                tabPanel("Dotplot",
+                         plotOutput("dotplot_sea_go"),
+                         downloadButton("download_dotplot_sea_go", "Download Dotplot"),
+                         
+                         actionButton("show_read_plot_dotplot_sea_go", "How to read this plot?"),
+                         
+                         bsModal("modal_read_plot_dotplot_sea_go", "How to read Dotplot", "show_read_plot_dotplot_sea_go", size = "large",
+                                 htmlOutput("read_plot_text_dotplot_sea_go")
+                         )
+                ),
+                tabPanel("GO Plot",
+                         plotOutput("goplot_sea"),
+                         downloadButton("download_goplot_sea", "Download GO Plot"),
+                         
+                         actionButton("show_read_plot_goplot_sea", "How to read this plot?"),
+                         
+                         bsModal("modal_read_plot_goplot_sea", "How to read GO Plot", "show_read_plot_goplot_sea", size = "large",
+                                 htmlOutput("read_plot_text_goplot_sea")
+                         )
+                ),
+                tabPanel("GO Netplot",
+                         plotOutput("goNetplot"),
+                         downloadButton("download_goNetplot", "Download Netplot"),
+                         
+                         actionButton("show_read_plot_goNetplot", "How to read this plot?"),
+                         
+                         bsModal("modal_read_plot_goNetplot", "How to read GO Netplot", "show_read_plot_goNetplot", size = "large",
+                                 htmlOutput("read_plot_text_goNetplot")
+                         )
+                ),
+                tabPanel("ORA Emap Plot",
+                         plotOutput("ORAEmapPlot"),
+                         downloadButton("download_ORAEmapPlot", "Download Emap Plot"),
+                         
+                         actionButton("show_read_plot_ORAEmapPlot", "How to read this plot?"),
+                         
+                         bsModal("modal_read_plot_ORAEmapPlot", "How to read Emap Plot", "show_read_plot_ORAEmapPlot", size = "large",
+                                 htmlOutput("read_plot_text_ORAEmapPlot")
+                         )
+                ),
+                tabPanel("PubTrend",
+                         plotOutput("pmcplot_go_ora"),
+                         downloadButton("download_pmcplot_go_ora", "Download PubTrend Plot"),
+                         
+                         actionButton("show_read_plot_pmcplot_go_ora", "How to read this plot?"),
+                         
+                         bsModal("modal_read_plot_pmcplot_go_ora", "How to read PubTrend Plot", "show_read_plot_pmcplot_go_ora", size = "large",
+                                 htmlOutput("read_plot_text_pmcplot_go_ora")
+                         )
+                )
+              )
+            )
+          )
+        ),
+        
+        fluidRow(
+          box(
+            title = "Documentation and Help",
+            width = 12,
+            status = "primary",
+            solidHeader = TRUE,
+            
+            actionButton("show_choose_method_go", "How to choose method"),
+            actionButton("show_about_ora_go", "About ORA"),
+            actionButton("show_about_gsea_go", "About GSEA"),
+            actionButton("show_advanced_methodology_go", "Advanced Methodology")
+          )
+        ),
+        
+        # Modals
+        bsModal("modal_choose_method_go", "How to choose method", "show_choose_method_go", size = "large",
+                htmlOutput("read_choose_method_go")
+        ),
+        
+        bsModal("modal_about_ora_go", "About ORA", "show_about_ora_go", size = "large",
+                htmlOutput("read_about_ora_go")
+        ),
+        
+        bsModal("modal_about_gsea_go", "About GSEA", "show_about_gsea_go", size = "large",
+                htmlOutput("read_about_gsea_go")
+        ),
+        
+        bsModal("modal_advanced_methodology_go", "Advanced Methodology", "show_advanced_methodology_go", size = "large",
+                htmlOutput("read_advanced_methodology_go")
+        ),
+        
+        
+        
+        
+      
       ),
+      
       
       tabItem(
         tabName = "pathway_enrichment",
         h2("Pathway Enrichment Analysis"),
-        p("This is the content for Pathway enrichment.")
-      ),
-      
-      tabItem(
-        tabName = "protein_enrichment",
-        h2("Protein Domain Enrichment Analysis"),
-        p("This is the content for Protein domain enrichment.")
-      ),
-      
-      tabItem(
-        tabName = "ORA",
-        h2("Overrepresentation Analysis (ORA)"),
-        p("Content for ORA.")
-      ),
-      
-      tabItem(
-        tabName = "GSEA",
-        h2("Gene Set Enrichment Analysis (GSEA)"),
-        p("Content for GSEA.")
-      ),
-      
-      tabItem(
-        tabName = "graph",
-        h2("Other Graph Analysis"),
-        p("Content for other graph analysis.")
+        
+        fluidRow(
+          box(
+            title = "Pathway Settings",
+            width = 12,
+            status = "primary",
+            solidHeader = TRUE,
+            
+            selectInput("pathway_analysis_method", "Analysis Method", choices = c("ORA", "GSEA")),
+            selectInput("deg_direction", "Gene Regulation", choices = c("Over", "Under", "Both")),
+            selectInput("pathway_analysis_database", "Database", choices = c("KEGG", "Reactome")),
+            numericInput("slider_pval_pathway_analysis", "p.adjust Threshold", value = 0.05, min = 0, max = 1, step = 0.01),
+            actionButton("run_pathway_analysis", "Run Analysis")
+          )
+        ),
+        
+        fluidRow(
+          box(
+            title = "Documentation and Help",
+            width = 12,
+            status = "primary",
+            solidHeader = TRUE,
+            
+            actionButton("show_choose_method", "How to choose method"),
+            actionButton("show_about_ora", "About ORA"),
+            actionButton("show_about_gsea", "About GSEA"),
+            actionButton("show_advanced_methodology", "Advanced Methodology")
+          )
+        ),
+        
+        bsModal("modal_choose_method", "How to choose method", "show_choose_method", size = "large",
+                htmlOutput("read_choose_method")
+        ),
+        
+        bsModal("modal_about_ora", "About ORA", "show_about_ora", size = "large",
+                htmlOutput("read_about_ora")
+        ),
+        
+        bsModal("modal_about_gsea", "About GSEA", "show_about_gsea", size = "large",
+                htmlOutput("read_about_gsea")
+        ),
+        
+        bsModal("modal_advanced_methodology", "Advanced Methodology", "show_advanced_methodology", size = "large",
+                htmlOutput("read_advanced_methodology")
+        ),
+        
+        
+        pathwayUI("pathway")
       ),
       
       tabItem(tabName = "kegg", h2("KEGG Database"), p("Content for KEGG.")),
       
       tabItem(tabName = "Reactome", h2("Reactome Database"), p("Content for Reactome."))
+    ),
+    
+    tabItem(tabName = "kegg", 
+            h2("KEGG Database"),
+            tags$iframe(
+              src = "https://www.genome.jp/kegg/kegg1.html",
+              width = "100%", height = "800px", frameborder = "0",
+              sandbox = "allow-same-origin allow-scripts allow-popups allow-forms"
+            )
+    ),
+    
+    tabItem(tabName = "Reactome", 
+            h2("Reactome Database"),
+            tags$iframe(
+              src = "https://reactome.org/userguide",
+              width = "100%", height = "800px", frameborder = "0",
+              sandbox = "allow-same-origin allow-scripts allow-popups allow-forms"
+            )
     )
-  )
-  )
+
+
+  # Right sidebar  
+  ),
   
+  tags$script(HTML("
+      $(document).on('click', '#toggle_sidebar', function() {
+        $('#right_sidebar').toggleClass('collapsed');
+      });
+    "))
+  )
+
+# End dashboardPage
   #============
   # End Body
   #============
+  
+  
+  
+  
+  
+  
+  
+  

@@ -1,0 +1,38 @@
+.skin-purple .main-header .logo {
+  height: 65px;
+  font-size: 34px;
+  font-weight: bold;
+  font-family: "Roboto", sans-serif;
+}
+
+h2 {
+  font-family: "Roboto", sans-serif;
+  font-size: 28px;
+  font-weight: bold;
+  color: #8B4513;
+  text-align: center;
+}
+
+p {
+  font-family: "Roboto", sans-serif;
+  font-size: 16px;
+  font-weight: normal;
+  color: #8B4513;
+  line-height: 1.5;
+  text-align: justify;
+  margin-bottom: 15px;
+}
+
+.modal-body ul {
+  display: block !important;
+  margin-left: 20px !important;
+  padding-left: 20px !important;
+  list-style-type: disc !important;
+  color: #333 !important;
+}
+
+.modal-body li {
+  display: list-item !important;
+  margin-bottom: 5px !important;
+  color: #333 !important;
+}
